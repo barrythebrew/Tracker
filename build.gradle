@@ -13,11 +13,13 @@ java {
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.5'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'com.github.crazzyghost:alphavantage-java:1.8.0'
 }
 
 test {

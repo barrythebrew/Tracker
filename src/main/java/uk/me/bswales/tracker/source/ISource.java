@@ -1,4 +1,6 @@
-package uk.me.bswales.tracker;
+package uk.me.bswales.tracker.source;
+
+import uk.me.bswales.tracker.TickerData;
 
 /**
  * Interface for data sources that provide ticker information.

@@ -14,3 +14,8 @@ CREATE TABLE IF NOT EXISTS ticker_data (
     date_retrieved      TEXT    NOT NULL,
     UNIQUE(ticker, date_retrieved)
 );
+
+CREATE TABLE IF NOT EXISTS ticker_code (
+    ticker   TEXT PRIMARY KEY,
+    location TEXT NOT NULL
+);

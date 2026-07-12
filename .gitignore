@@ -36,3 +36,6 @@ gradle/
 
 ### Project-specific ###
 source.properties
+
+### Database ###
+tracker.db

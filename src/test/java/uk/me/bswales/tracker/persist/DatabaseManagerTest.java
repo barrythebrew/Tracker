@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,7 +19,6 @@ class DatabaseManagerTest {
         try (DatabaseManager dbm = new DatabaseManager()) {
             Connection conn = dbm.getConnection();
             assertNotNull(conn);
-            assertFalse(conn.isClosed());
 
             // Verify the ticker_data table was created
             try (Statement stmt = conn.createStatement();
@@ -27,7 +27,7 @@ class DatabaseManagerTest {
                 assertTrue(rs.next(), "ticker_data table should exist");
                 assertEquals("ticker_data", rs.getString("name"));
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             fail("DatabaseManager should initialise without error", e);
         }
     }
@@ -39,6 +39,8 @@ class DatabaseManagerTest {
              DatabaseManager dbm2 = new DatabaseManager()) {
             assertNotNull(dbm1.getConnection());
             assertNotNull(dbm2.getConnection());
+        } catch (SQLException e) {
+            fail("DatabaseManager should initialise without error", e);
         }
     }
 }

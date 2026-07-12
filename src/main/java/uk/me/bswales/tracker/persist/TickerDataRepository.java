@@ -131,7 +131,11 @@ public class TickerDataRepository {
     // ---------------------------------------------------------------
 
     private Connection connection() {
-        return databaseManager.getConnection();
+        try {
+            return databaseManager.getConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to get database connection", e);
+        }
     }
 
     private static TickerData mapRow(ResultSet rs) throws SQLException {

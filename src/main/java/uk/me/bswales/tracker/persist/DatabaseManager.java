@@ -22,22 +22,21 @@ public class DatabaseManager implements AutoCloseable {
     private static final String DB_URL = "jdbc:sqlite:tracker.db";
     private static final String SCHEMA_RESOURCE = "/uk/me/bswales/tracker/persist/schema.sql";
 
-    private final Connection connection;
+    private boolean initialised = false;
 
     public DatabaseManager() {
-        try {
-            this.connection = DriverManager.getConnection(DB_URL);
-            initialise();
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to connect to SQLite database", e);
-        }
+        // Ensure schema is initialised on first use
     }
 
     /**
-     * Returns the underlying JDBC connection.
+     * Returns a new JDBC connection.
      */
-    public Connection getConnection() {
-        return connection;
+    public Connection getConnection() throws SQLException {
+        if (!initialised) {
+            initialise();
+            initialised = true;
+        }
+        return DriverManager.getConnection(DB_URL);
     }
 
     /**
@@ -45,8 +44,15 @@ public class DatabaseManager implements AutoCloseable {
      */
     private void initialise() throws SQLException {
         String sql = loadSchema();
-        try (Statement stmt = connection.createStatement()) {
-            stmt.execute(sql);
+        // Split by semicolon to handle multiple statements
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             Statement stmt = conn.createStatement()) {
+            for (String statement : sql.split(";")) {
+                String trimmed = statement.trim();
+                if (!trimmed.isEmpty()) {
+                    stmt.execute(trimmed);
+                }
+            }
         }
     }
 
@@ -65,12 +71,6 @@ public class DatabaseManager implements AutoCloseable {
 
     @Override
     public void close() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-            }
-        } catch (SQLException e) {
-            // ignore
-        }
+        // No resources to close - connections are obtained per-operation
     }
 }

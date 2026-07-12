@@ -29,50 +29,10 @@ bin/
 ### Mac OS ###
 .DS_Store
 
+### Gradle build output ###
+build/
+.gradle/
+gradle/
+
+### Project-specific ###
 source.properties
-/build/tsco_lon_test_output.csv
-/build/libs/Tracker-1.0.0.jar
-/build/classes/java/test/uk/me/bswales/tracker/TickerFileReaderTest.class
-/build/classes/java/main/uk/me/bswales/tracker/TickerFileReader.class
-/build/tmp/compileJava/compileTransaction/stash-dir/TickerData.class.uniqueId0
-/build/classes/java/main/uk/me/bswales/tracker/TickerData.class
-/build/test-results/test/TEST-uk.me.bswales.tracker.AlphaAvantageTest.xml
-/build/reports/tests/test/css/style.css
-/build/tmp/compileJava/compileTransaction/stash-dir/StockFinder.class.uniqueId4
-/build/classes/java/main/uk/me/bswales/tracker/StockFinder.class
-/build/classes/java/test/uk/me/bswales/tracker/SourceFactoryTest.class
-/build/tmp/compileJava/compileTransaction/stash-dir/SourceFactory.class.uniqueId2
-/build/classes/java/main/uk/me/bswales/tracker/SourceFactory.class
-/.gradle/9.6.1/checksums/sha1-checksums.bin
-/build/test-results/test/binary/results-generic.bin
-/.gradle/9.6.1/fileHashes/resourceHashesCache.bin
-/build/reports/tests/test/js/report.js
-/build/reports/problems/problems-report.html
-/build/tmp/compileTestJava/previous-compilation-data.bin
-/build/tmp/compileJava/previous-compilation-data.bin
-/.gradle/buildOutputCleanup/outputFiles.bin
-/build/test-results/test/binary/output-events.bin
-/.gradle/9.6.1/checksums/md5-checksums.bin
-/build/tmp/jar/MANIFEST.MF
-/.gradle/9.6.1/fileChanges/last-build.bin
-/build/tmp/compileJava/compileTransaction/stash-dir/ISource.class.uniqueId3
-/build/classes/java/main/uk/me/bswales/tracker/source/ISource.class
-/build/reports/tests/test/index.html
-/build/reports/tests/test/uk.me.bswales.tracker.AlphaAvantageTest/index.html
-/gradle/wrapper/gradle-wrapper.properties
-/gradle/wrapper/gradle-wrapper.jar
-/.gradle/vcs-1/gc.properties
-/.gradle/9.6.1/gc.properties
-/.gradle/9.6.1/fileHashes/fileHashes.lock
-/.gradle/9.6.1/fileHashes/fileHashes.bin
-/.gradle/file-system.probe
-/build/reports/tests/test/uk.me.bswales.tracker.AlphaAvantageTest/fetchAndSaveTescoData().html
-/.gradle/9.6.1/executionHistory/executionHistory.lock
-/.gradle/9.6.1/executionHistory/executionHistory.bin
-/.gradle/9.6.1/checksums/checksums.lock
-/.gradle/buildOutputCleanup/cache.properties
-/.gradle/buildOutputCleanup/buildOutputCleanup.lock
-/build/reports/tests/test/css/base-style.css
-/build/classes/java/test/uk/me/bswales/tracker/AlphaAvantageTest.class
-/build/tmp/compileJava/compileTransaction/stash-dir/AlphaAvantage.class.uniqueId1
-/build/classes/java/main/uk/me/bswales/tracker/source/AlphaAvantage.class

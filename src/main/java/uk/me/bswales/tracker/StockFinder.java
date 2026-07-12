@@ -1,5 +1,7 @@
 package uk.me.bswales.tracker;
 
+import uk.me.bswales.tracker.persist.DatabaseManager;
+import uk.me.bswales.tracker.persist.TickerCodeRepository;
 import uk.me.bswales.tracker.source.ISource;
 
 import java.io.IOException;
@@ -9,13 +11,14 @@ import java.util.List;
 
 public class StockFinder {
 
-    private static final String TICKER_RESOURCE = "/uk/me/bswales/tracker/uk_tickers.txt";
     private static final String OUTPUT_FILE = "stock_data.csv";
 
     private final List<ISource> sources;
+    private final TickerCodeRepository tickerCodeRepository;
 
     public StockFinder() {
         sources = SourceFactory.getSources();
+        tickerCodeRepository = new TickerCodeRepository(new DatabaseManager());
     }
 
     public static void main(String[] args) {
@@ -24,21 +27,20 @@ public class StockFinder {
     }
 
     /**
-     * Reads all tickers from the resource file, fetches data from the first
+     * Reads all tickers from the database table, fetches data from the first
      * available source, and writes the results to a CSV file.
      */
     private void fetchAndSave() {
-        // Read tickers
-        TickerFileReader reader = new TickerFileReader(TICKER_RESOURCE);
+        // Read tickers from database
         List<String> tickers;
         try {
-            tickers = reader.readTickers();
-        } catch (IOException e) {
-            System.err.println("Failed to read tickers: " + e.getMessage());
+            tickers = tickerCodeRepository.findAllTickers();
+        } catch (Exception e) {
+            System.err.println("Failed to read tickers from database: " + e.getMessage());
             return;
         }
 
-        System.out.println("Loaded " + tickers.size() + " tickers.");
+        System.out.println("Loaded " + tickers.size() + " tickers from database.");
 
         // Find an available source
         ISource source = null;

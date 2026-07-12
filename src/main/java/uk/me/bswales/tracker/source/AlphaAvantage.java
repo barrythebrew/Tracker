@@ -8,6 +8,7 @@ import com.crazzyghost.alphavantage.timeseries.response.TimeSeriesResponse;
 import uk.me.bswales.tracker.DayRange;
 import uk.me.bswales.tracker.RangeCalculator;
 import uk.me.bswales.tracker.TickerData;
+import uk.me.bswales.tracker.TickerDataValidator;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -36,7 +37,7 @@ public class AlphaAvantage implements ISource {
 
     @Override
     public boolean isAvailable() {
-        return used < dayLimit;
+        return (dayLimit - used) > 1;
     }
 
     @Override
@@ -48,13 +49,65 @@ public class AlphaAvantage implements ISource {
                 .outputSize(OutputSize.COMPACT)
                 .fetchSync();
 
+        used++;
+
         if (response.getErrorMessage() != null) {
             System.err.println("API error for " + ticker + ": " + response.getErrorMessage());
             return null;
         }
 
+        TickerData tickerData = populateTicker(ticker, response);
+
+        // If the daily data didn't pass validation for sixMonthPrice,
+        // fetch weekly data to get the 6-month ago close price
+        if (tickerData != null && needsSixMonthPrice(tickerData)) {
+            BigDecimal sixMonthPrice = fetchSixMonthPrice(ticker);
+            if (sixMonthPrice != null) {
+                tickerData.setSixMonthPrice(sixMonthPrice);
+            }
+        }
+
+        return tickerData;
+    }
+
+    /**
+     * Checks whether the ticker data still needs a sixMonthPrice populated.
+     * Returns true if sixMonthPrice is null or if the validator flags it as failing
+     * (meaning daily data didn't have enough history).
+     */
+    private static boolean needsSixMonthPrice(TickerData tickerData) {
+        if (tickerData.getSixMonthPrice() == null) {
+            return true;
+        }
+        // Run validation and see if the sixMonthPrice check failed
+        return TickerDataValidator.validate(tickerData).stream()
+                .filter(r -> r.getFieldName().contains("sixMonthPrice"))
+                .noneMatch(TickerDataValidator.CheckResult::isPassed);
+    }
+
+    /**
+     * Fetches weekly time series data and extracts the closing price
+     * from approximately 6 months (26 weeks) ago.
+     */
+    private BigDecimal fetchSixMonthPrice(String ticker) {
+        TimeSeriesResponse weeklyResponse = AlphaVantage.api()
+                .timeSeries()
+                .weekly()
+                .forSymbol(ticker)
+                .fetchSync();
+
         used++;
-        return populateTicker(ticker, response);
+
+        if (weeklyResponse.getErrorMessage() != null) {
+            System.err.println("Weekly API error for " + ticker + ": " + weeklyResponse.getErrorMessage());
+            return null;
+        }
+
+        List<StockUnit> weeklyUnits = weeklyResponse.getStockUnits();
+        if (weeklyUnits != null && !weeklyUnits.isEmpty() && weeklyUnits.size() > 26) {
+            return BigDecimal.valueOf(weeklyUnits.get(26).getClose());
+        }
+        return null;
     }
 
     private TickerData populateTicker(String tickerCode, TimeSeriesResponse timeSeriesResponse) {
@@ -99,12 +152,13 @@ public class AlphaAvantage implements ISource {
             tickerData.setThreeMonthPrice(BigDecimal.valueOf(stockUnits.get(60).getClose()));
         }
 
-        // Price at approximately 6 months ago (120 trading days)
+        // Price at approximately 6 months ago (120 trading days) — may be null
+        // if daily data doesn't go back that far. The caller will fetch weekly
+        // data to fill this in if validation fails.
         if (stockUnits.size() > 120) {
             tickerData.setSixMonthPrice(BigDecimal.valueOf(stockUnits.get(120).getClose()));
         }
 
         return tickerData;
     }
-
 }

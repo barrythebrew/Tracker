@@ -10,6 +10,7 @@ import uk.me.bswales.tracker.RangeCalculator;
 import uk.me.bswales.tracker.TickerData;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -72,20 +73,19 @@ public class AlphaAvantage implements ISource {
         tickerData.setClose(BigDecimal.valueOf(latest.getClose()));
         tickerData.setVolume((int) latest.getVolume());
 
-        int dayCount = Math.min(20, stockUnits.size());
-        List<DayRange> allRanges = new ArrayList<>(dayCount);
-        for (int i = 0; i < dayCount; i++) {
-            StockUnit unit = stockUnits.get(i);
-            allRanges.add(new DayRange(unit.getHigh(), unit.getLow(), unit.getClose()));
+        List<DayRange> allRanges = new ArrayList<>(stockUnits.size());
+        for (StockUnit unit : stockUnits) {
+            LocalDate date = LocalDate.parse(unit.getDate());
+            allRanges.add(new DayRange(date, unit.getHigh(), unit.getLow(), unit.getClose()));
         }
 
-        setFiveDayRange(allRanges.subList(0, Math.min(5, allRanges.size())), tickerData);
+        // 5-day high/low using RangeCalculator (uses the 5 most recent by date)
+        tickerData.setFiveDayHigh(BigDecimal.valueOf(RangeCalculator.highestHigh(allRanges)));
+        tickerData.setFiveDayLow(BigDecimal.valueOf(RangeCalculator.lowestLow(allRanges)));
 
-        // Average daily range as a percentage using RangeCalculator
-        if (!allRanges.isEmpty()) {
-            double adr = RangeCalculator.averageDailyRange(allRanges);
-            tickerData.setAverageDailyRange((int) Math.round(adr));
-        }
+        // Average daily range as a percentage using RangeCalculator (uses the 20 most recent by date)
+        double adr = RangeCalculator.averageDailyRange(allRanges);
+        tickerData.setAverageDailyRange((int) Math.round(adr));
 
         // Price at approximately 1 month ago (20 trading days)
         if (stockUnits.size() > 20) {
@@ -107,9 +107,4 @@ public class AlphaAvantage implements ISource {
         return tickerData;
     }
 
-    private static void setFiveDayRange(List<DayRange> dayRanges, TickerData tickerData) {
-        // Compute 5-day high/low using RangeCalculator
-        tickerData.setFiveDayHigh(BigDecimal.valueOf(RangeCalculator.highestHigh(dayRanges)));
-        tickerData.setFiveDayLow(BigDecimal.valueOf(RangeCalculator.lowestLow(dayRanges)));
-    }
 }

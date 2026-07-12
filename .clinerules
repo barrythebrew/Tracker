@@ -1,0 +1,4 @@
+# Project Rules
+
+## API Usage
+- Do NOT run `AlphaAvantageTest` unless explicitly requested by the user. This test consumes limited daily API keys for Alpha Vantage.

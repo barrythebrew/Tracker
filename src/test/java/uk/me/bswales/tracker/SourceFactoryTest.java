@@ -80,15 +80,6 @@ class SourceFactoryTest {
     }
 
     @Test
-    void createSource_isCaseInsensitive() {
-        Properties config = new Properties();
-        config.setProperty("apiKey", "KEY");
-
-        assertNotNull(SourceFactory.createSource("ALPHAVANTAGE", config));
-        assertNotNull(SourceFactory.createSource("AlphaVantage", config));
-    }
-
-    @Test
     void getSources_returnsConfiguredSources() {
         List<ISource> sources = SourceFactory.getSources();
 

@@ -5,9 +5,12 @@ import com.crazzyghost.alphavantage.Config;
 import com.crazzyghost.alphavantage.parameters.OutputSize;
 import com.crazzyghost.alphavantage.timeseries.response.StockUnit;
 import com.crazzyghost.alphavantage.timeseries.response.TimeSeriesResponse;
+import uk.me.bswales.tracker.DayRange;
+import uk.me.bswales.tracker.RangeCalculator;
 import uk.me.bswales.tracker.TickerData;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -69,27 +72,19 @@ public class AlphaAvantage implements ISource {
         tickerData.setClose(BigDecimal.valueOf(latest.getClose()));
         tickerData.setVolume((int) latest.getVolume());
 
-        // Compute 5-day high/low from the first 5 stock units
-        int limit = Math.min(5, stockUnits.size());
-        double fiveDayHigh = Double.MIN_VALUE;
-        double fiveDayLow = Double.MAX_VALUE;
-        for (int i = 0; i < limit; i++) {
+        int dayCount = Math.min(20, stockUnits.size());
+        List<DayRange> allRanges = new ArrayList<>(dayCount);
+        for (int i = 0; i < dayCount; i++) {
             StockUnit unit = stockUnits.get(i);
-            if (unit.getHigh() > fiveDayHigh) fiveDayHigh = unit.getHigh();
-            if (unit.getLow() < fiveDayLow) fiveDayLow = unit.getLow();
+            allRanges.add(new DayRange(unit.getHigh(), unit.getLow(), unit.getClose()));
         }
-        tickerData.setFiveDayHigh(BigDecimal.valueOf(fiveDayHigh));
-        tickerData.setFiveDayLow(BigDecimal.valueOf(fiveDayLow));
 
-        // Approximate average daily range over available data
-        if (stockUnits.size() > 1) {
-            double totalRange = 0;
-            int count = Math.min(20, stockUnits.size());
-            for (int i = 0; i < count; i++) {
-                StockUnit unit = stockUnits.get(i);
-                totalRange += unit.getHigh() - unit.getLow();
-            }
-            tickerData.setAverageDailyRange((int) Math.round(totalRange / count));
+        setFiveDayRange(allRanges.subList(0, Math.min(5, allRanges.size())), tickerData);
+
+        // Average daily range as a percentage using RangeCalculator
+        if (!allRanges.isEmpty()) {
+            double adr = RangeCalculator.averageDailyRange(allRanges);
+            tickerData.setAverageDailyRange((int) Math.round(adr));
         }
 
         // Price at approximately 1 month ago (20 trading days)
@@ -110,5 +105,11 @@ public class AlphaAvantage implements ISource {
         }
 
         return tickerData;
+    }
+
+    private static void setFiveDayRange(List<DayRange> dayRanges, TickerData tickerData) {
+        // Compute 5-day high/low using RangeCalculator
+        tickerData.setFiveDayHigh(BigDecimal.valueOf(RangeCalculator.highestHigh(dayRanges)));
+        tickerData.setFiveDayLow(BigDecimal.valueOf(RangeCalculator.lowestLow(dayRanges)));
     }
 }

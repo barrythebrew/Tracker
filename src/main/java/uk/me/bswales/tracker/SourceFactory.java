@@ -2,6 +2,7 @@ package uk.me.bswales.tracker;
 
 import uk.me.bswales.tracker.source.AlphaAvantage;
 import uk.me.bswales.tracker.source.ISource;
+import uk.me.bswales.tracker.source.Tiingo;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,6 +111,8 @@ public class SourceFactory {
         switch (name.toLowerCase()) {
             case "alphaavantage":
                 return new AlphaAvantage(config);
+            case "tiingo":
+                return new Tiingo(config);
             default:
                 System.err.println("Unknown source: " + name);
                 return null;

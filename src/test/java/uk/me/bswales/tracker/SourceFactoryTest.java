@@ -2,6 +2,7 @@ package uk.me.bswales.tracker;
 
 import uk.me.bswales.tracker.source.AlphaAvantage;
 import uk.me.bswales.tracker.source.ISource;
+import uk.me.bswales.tracker.source.Tiingo;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -84,8 +85,21 @@ class SourceFactoryTest {
         List<ISource> sources = SourceFactory.getSources();
 
         assertFalse(sources.isEmpty());
-        assertEquals(1, sources.size());
-        assertInstanceOf(AlphaAvantage.class, sources.getFirst());
-        assertTrue(sources.getFirst().isAvailable());
+        assertEquals(2, sources.size());
+
+        // Check that both expected sources are present (order may vary)
+        boolean hasAlphaVantage = false;
+        boolean hasTiingo = false;
+        for (ISource source : sources) {
+            if (source instanceof AlphaAvantage) {
+                hasAlphaVantage = true;
+                assertTrue(source.isAvailable());
+            } else if (source instanceof Tiingo) {
+                hasTiingo = true;
+                assertTrue(source.isAvailable());
+            }
+        }
+        assertTrue(hasAlphaVantage, "Should have AlphaAvantage source");
+        assertTrue(hasTiingo, "Should have Tiingo source");
     }
 }

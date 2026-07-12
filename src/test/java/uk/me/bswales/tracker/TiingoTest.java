@@ -2,8 +2,8 @@ package uk.me.bswales.tracker;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import uk.me.bswales.tracker.source.AlphaAvantage;
 import uk.me.bswales.tracker.source.ISource;
+import uk.me.bswales.tracker.source.Tiingo;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -15,32 +15,33 @@ import java.util.Properties;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration test that fetches real data from Alpha Vantage for a single ticker
+ * Integration test that fetches real data from Tiingo for a single ticker
  * and saves the response to a file.
  */
-@Tag("api-test")
-class AlphaAvantageTest {
+class TiingoTest {
 
-    private static final String TEST_TICKER = "TSCO.LON";
-    private static final String OUTPUT_FILE = "build/tsco_lon_test_output.csv";
+    private static final String TEST_TICKER = "TSCO_LON";
+    private static final String OUTPUT_FILE = "build/tsco_lon_tiingo_test_output.csv";
 
     @Test
     void fetchAndSaveTescoData() throws IOException {
         // Load the real API key from the project properties
         Properties props = SourceFactory.loadProperties();
-        Properties alphaProps = SourceFactory.groupBySource(props).get("alphaavantage");
+        Properties tiingoProps = SourceFactory.groupBySource(props).get("tiingo");
 
-        assertNotNull(alphaProps, "alphaavantage properties must be present in source.properties");
-        assertNotNull(alphaProps.getProperty("apiKey"), "apiKey must be configured");
+        assertNotNull(tiingoProps, "tiingo properties must be present in source.properties");
+        assertNotNull(tiingoProps.getProperty("apiKey"), "apiKey must be configured");
+        assertFalse(tiingoProps.getProperty("apiKey").equals("YOUR_TIINGO_API_KEY"),
+                "Please configure a real Tiingo API key in source.properties");
 
         // Create the source and fetch data
-        ISource source = new AlphaAvantage(alphaProps);
+        ISource source = new Tiingo(tiingoProps);
         assertTrue(source.isAvailable(), "Source should be available");
 
         TickerData data = source.fetch(TEST_TICKER);
         assertNotNull(data, "Fetched data should not be null for " + TEST_TICKER);
         assertEquals(TEST_TICKER, data.getTicker());
-        assertEquals(AlphaAvantage.class.getName(), data.getSource());
+        assertEquals(Tiingo.class.getName(), data.getSource());
 
         // Verify key fields are populated
         assertNotNull(data.getPriceCurrent(), "priceCurrent should be set");
@@ -64,7 +65,7 @@ class AlphaAvantageTest {
         assertTrue(Files.exists(outputPath), "Output file should exist");
         String content = Files.readString(outputPath);
         assertTrue(content.contains(TEST_TICKER), "Output should contain the ticker symbol");
-        assertTrue(content.contains(AlphaAvantage.class.getName()), "Output should contain the source class name");
+        assertTrue(content.contains(Tiingo.class.getName()), "Output should contain the source class name");
 
         System.out.println("Data for " + TEST_TICKER + " saved to: " + outputPath.toAbsolutePath());
         System.out.println("--- CSV Output ---");

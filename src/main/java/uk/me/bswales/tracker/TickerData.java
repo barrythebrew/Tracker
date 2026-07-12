@@ -103,4 +103,42 @@ public class TickerData {
     public void setSixMonthPrice(BigDecimal sixMonthPrice) {
         this.sixMonthPrice = sixMonthPrice;
     }
+
+    /**
+     * Returns the CSV header line for the data in this class.
+     */
+    public static String csvHeader() {
+        return "ticker,source,averageDailyRange,priceCurrent,fiveDayHigh,fiveDayLow,volume,close,oneMonthPrice,threeMonthPrice,sixMonthPrice";
+    }
+
+    /**
+     * Returns this instance's data as a CSV row.
+     */
+    public String toCsvRow() {
+        return String.join(",",
+                escapeCsv(ticker),
+                escapeCsv(source),
+                String.valueOf(averageDailyRange),
+                toStr(priceCurrent),
+                toStr(fiveDayHigh),
+                toStr(fiveDayLow),
+                String.valueOf(volume),
+                toStr(close),
+                toStr(oneMonthPrice),
+                toStr(threeMonthPrice),
+                toStr(sixMonthPrice)
+        );
+    }
+
+    private static String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+
+    private static String toStr(BigDecimal bd) {
+        return bd == null ? "" : bd.toPlainString();
+    }
 }

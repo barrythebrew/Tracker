@@ -7,20 +7,19 @@ import uk.me.bswales.tracker.DayRange;
 import uk.me.bswales.tracker.RangeCalculator;
 import uk.me.bswales.tracker.TickerData;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.math.BigDecimal;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 /**
  * Data source that fetches ticker data from the EODHD API.
@@ -49,27 +48,23 @@ public class Eodhd implements ISource {
     public TickerData fetch(String ticker) {
         try {
             String urlStr = buildUrl(ticker);
-            URL url = new URL(urlStr);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Accept", "application/json");
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(urlStr))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
 
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                System.err.println("EODHD API error for " + ticker + ": HTTP " + responseCode);
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                System.err.println("EODHD API error for " + ticker + ": HTTP " + response.statusCode());
                 return null;
             }
 
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)
-            );
-            String jsonResponse = reader.lines().collect(Collectors.joining("\n"));
-            reader.close();
-            conn.disconnect();
+            return parseTickerData(ticker, response.body());
 
-            return parseTickerData(ticker, jsonResponse);
-
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             System.err.println("Failed to fetch EODHD data for " + ticker + ": " + e.getMessage());
             return null;
         }

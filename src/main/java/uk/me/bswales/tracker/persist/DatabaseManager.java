@@ -19,13 +19,23 @@ import java.util.stream.Collectors;
  */
 public class DatabaseManager implements AutoCloseable {
 
-    private static final String DB_URL = "jdbc:sqlite:tracker.db";
+    private static final String DEFAULT_DB_URL = "jdbc:sqlite:tracker.db";
     private static final String SCHEMA_RESOURCE = "/uk/me/bswales/tracker/persist/schema.sql";
 
+    private final String dbUrl;
     private boolean initialised = false;
 
     public DatabaseManager() {
-        // Ensure schema is initialised on first use
+        this(DEFAULT_DB_URL);
+    }
+
+    /**
+     * Creates a DatabaseManager with a custom database URL.
+     *
+     * @param dbUrl the JDBC URL for the SQLite database (e.g. "jdbc:sqlite:testTracker.db")
+     */
+    public DatabaseManager(String dbUrl) {
+        this.dbUrl = dbUrl;
     }
 
     /**
@@ -36,7 +46,7 @@ public class DatabaseManager implements AutoCloseable {
             initialise();
             initialised = true;
         }
-        return DriverManager.getConnection(DB_URL);
+        return DriverManager.getConnection(dbUrl);
     }
 
     /**
@@ -45,7 +55,7 @@ public class DatabaseManager implements AutoCloseable {
     private void initialise() throws SQLException {
         String sql = loadSchema();
         // Split by semicolon to handle multiple statements
-        try (Connection conn = DriverManager.getConnection(DB_URL);
+        try (Connection conn = DriverManager.getConnection(dbUrl);
              Statement stmt = conn.createStatement()) {
             for (String statement : sql.split(";")) {
                 String trimmed = statement.trim();

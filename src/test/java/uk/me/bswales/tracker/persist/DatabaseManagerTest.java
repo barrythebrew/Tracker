@@ -16,7 +16,7 @@ class DatabaseManagerTest {
 
     @Test
     void createsSchemaAndProvidesConnection() {
-        try (DatabaseManager dbm = new DatabaseManager()) {
+        try (DatabaseManager dbm = new DatabaseManager("jdbc:sqlite:testTracker.db")) {
             Connection conn = dbm.getConnection();
             assertNotNull(conn);
 
@@ -35,8 +35,8 @@ class DatabaseManagerTest {
     @Test
     void schemaIsIdempotent() {
         // Running twice should not cause errors
-        try (DatabaseManager dbm1 = new DatabaseManager();
-             DatabaseManager dbm2 = new DatabaseManager()) {
+        try (DatabaseManager dbm1 = new DatabaseManager("jdbc:sqlite:testTracker.db");
+             DatabaseManager dbm2 = new DatabaseManager("jdbc:sqlite:testTracker.db")) {
             assertNotNull(dbm1.getConnection());
             assertNotNull(dbm2.getConnection());
         } catch (SQLException e) {

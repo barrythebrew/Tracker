@@ -126,6 +126,19 @@ public class TickerDataRepository {
         return results;
     }
 
+    /**
+     * Deletes all rows from the ticker_data table.
+     */
+    public void truncate() {
+        String sql = "DELETE FROM ticker_data";
+        try (Connection conn = connection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to truncate ticker_data table", e);
+        }
+    }
+
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------

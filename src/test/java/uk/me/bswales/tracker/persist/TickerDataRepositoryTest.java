@@ -22,8 +22,9 @@ class TickerDataRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        dbm = new DatabaseManager();
+        dbm = new DatabaseManager("jdbc:sqlite:testTracker.db");
         repo = new TickerDataRepository(dbm);
+        repo.truncate();
     }
 
     @AfterEach

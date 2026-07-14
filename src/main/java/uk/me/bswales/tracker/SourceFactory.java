@@ -1,6 +1,7 @@
 package uk.me.bswales.tracker;
 
 import uk.me.bswales.tracker.source.AlphaAvantage;
+import uk.me.bswales.tracker.source.Eodhd;
 import uk.me.bswales.tracker.source.ISource;
 import uk.me.bswales.tracker.source.Tiingo;
 
@@ -108,14 +109,14 @@ public class SourceFactory {
      * @return a configured ISource, or {@code null} if the name is unknown
      */
     static ISource createSource(String name, Properties config) {
-        switch (name.toLowerCase()) {
-            case "alphaavantage":
-                return new AlphaAvantage(config);
-            case "tiingo":
-                return new Tiingo(config);
-            default:
+        return switch (name.toLowerCase()) {
+            case "alphaavantage" -> new AlphaAvantage(config);
+            case "tiingo" -> new Tiingo(config);
+            case "eodhd" -> new Eodhd(config);
+            default -> {
                 System.err.println("Unknown source: " + name);
-                return null;
-        }
+                yield null;
+            }
+        };
     }
 }

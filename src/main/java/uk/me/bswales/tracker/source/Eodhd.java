@@ -3,7 +3,6 @@ package uk.me.bswales.tracker.source;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import top.cptl.tiingo4j.apis.TiingoApi;
 import uk.me.bswales.tracker.DayRange;
 import uk.me.bswales.tracker.RangeCalculator;
 import uk.me.bswales.tracker.TickerData;
@@ -18,48 +17,38 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /**
- * Data source that fetches ticker data from the Tiingo API.
+ * Data source that fetches ticker data from the EODHD API.
  */
-public class Tiingo implements ISource {
+public class Eodhd implements ISource {
 
-    private static final String API_BASE_URL = "https://api.tiingo.com/tiingo/daily";
+    private static final String API_BASE_URL = "https://eodhd.com/api";
 
     private final String apiKey;
-    private final int uniqueSymbols;
-    private final int requestPerHour;
-    private final int requestPerDay;
-    private final String maxBandwidthPerMonth;
-    private int used = 0;
 
     /**
-     * Creates a Tiingo data source with the given configuration.
+     * Creates an EODHD data source with the given configuration.
      *
-     * @param config properties containing "apiKey", "dayLimit", "uniqueSymbols",
-     *               "requestPerHour", "requestPerDay", and "maxBandwidthPerMonth"
+     * @param config properties containing "apiKey"
      */
-    public Tiingo(Properties config) {
+    public Eodhd(Properties config) {
         this.apiKey = config.getProperty("apiKey");
-        this.uniqueSymbols = Integer.parseInt(config.getProperty("uniqueSymbols", "500"));
-        this.requestPerHour = Integer.parseInt(config.getProperty("requestPerHour", "50"));
-        this.requestPerDay = Integer.parseInt(config.getProperty("requestPerDay", "1000"));
-        this.maxBandwidthPerMonth = config.getProperty("maxBandwidthPerMonth", "1GB");
     }
 
     @Override
     public boolean isAvailable() {
-        // only works for US
-        return false;
+        return true;
     }
 
     @Override
     public TickerData fetch(String ticker) {
-        TiingoApi tiingoApi = new TiingoApi(apiKey);
         try {
-            String urlStr = API_BASE_URL + "/" + URLEncoder.encode(ticker, StandardCharsets.UTF_8) + "/prices?token=" + apiKey;
+            String urlStr = buildUrl(ticker);
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
@@ -67,29 +56,40 @@ public class Tiingo implements ISource {
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
-                System.err.println("Tiingo API error for " + ticker + ": HTTP " + responseCode);
+                System.err.println("EODHD API error for " + ticker + ": HTTP " + responseCode);
                 return null;
             }
 
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)
             );
-            String jsonResponse = reader.lines().collect(java.util.stream.Collectors.joining("\n"));
+            String jsonResponse = reader.lines().collect(Collectors.joining("\n"));
             reader.close();
             conn.disconnect();
-
-            used++;
 
             return parseTickerData(ticker, jsonResponse);
 
         } catch (IOException e) {
-            System.err.println("Failed to fetch data for " + ticker + ": " + e.getMessage());
+            System.err.println("Failed to fetch EODHD data for " + ticker + ": " + e.getMessage());
             return null;
         }
     }
 
     /**
-     * Parses the Tiingo JSON response and populates a TickerData object.
+     * Builds the request URL for the given ticker.
+     */
+    private String buildUrl(String ticker) {
+        return API_BASE_URL + "/eod/" + URLEncoder.encode(ticker, StandardCharsets.UTF_8)
+                + "?api_token=" + apiKey
+                + "&fmt=json";
+    }
+
+    /**
+     * Parses the EODHD JSON response and populates a TickerData object.
+     * <p>
+     * The EODHD EOD endpoint returns a JSON array of daily price objects, each containing:
+     * {@code date}, {@code open}, {@code high}, {@code low}, {@code close},
+     * {@code adjusted_close}, and {@code volume}.
      */
     private TickerData parseTickerData(String ticker, String jsonResponse) {
         try {
@@ -104,11 +104,11 @@ public class Tiingo implements ISource {
 
             List<DayRange> allRanges = new ArrayList<>();
 
-            // Parse all price data points
+            // Parse all price data points (array is ordered oldest-first, newest-last)
             for (int i = 0; i < priceData.size(); i++) {
                 JsonObject day = priceData.get(i).getAsJsonObject();
                 String dateStr = day.get("date").getAsString();
-                LocalDate date = LocalDate.parse(dateStr.substring(0, 10)); // Handle datetime format
+                LocalDate date = LocalDate.parse(dateStr);
                 double high = day.get("high").getAsDouble();
                 double low = day.get("low").getAsDouble();
                 double close = day.get("close").getAsDouble();
@@ -116,10 +116,8 @@ public class Tiingo implements ISource {
 
                 allRanges.add(new DayRange(date, high, low, close));
 
-                // Most recent day's data (first in array)
-                if (i == 0) {
-                    tickerData.setPriceCurrent(BigDecimal.valueOf(close));
-                    tickerData.setClose(BigDecimal.valueOf(close));
+                // Most recent day's data (last element in oldest-first array)
+                if (i == priceData.size() - 1) {
                     tickerData.setVolume((int) volume);
                 }
             }
@@ -127,6 +125,12 @@ public class Tiingo implements ISource {
             if (allRanges.isEmpty()) {
                 return null;
             }
+
+            // Sort by date descending so the most recent record is first
+            allRanges.sort(Comparator.comparing(DayRange::date).reversed());
+            DayRange latest = allRanges.getFirst();
+            tickerData.setPriceCurrent(BigDecimal.valueOf(latest.close()));
+            tickerData.setClose(BigDecimal.valueOf(latest.close()));
 
             // 5-day high/low using RangeCalculator (uses the 5 most recent by date)
             tickerData.setFiveDayHigh(BigDecimal.valueOf(RangeCalculator.highestHigh(allRanges)));
@@ -137,26 +141,26 @@ public class Tiingo implements ISource {
             tickerData.setAverageDailyRange((int) Math.round(adr));
 
             // Price at approximately 1 month ago (20 trading days)
-            if (allRanges.size() > 20) {
+            // Array is now newest-first (descending by date)
+            int size = allRanges.size();
+            if (size > 20) {
                 tickerData.setOneMonthPrice(BigDecimal.valueOf(allRanges.get(20).close()));
-            } else if (allRanges.size() > 1) {
-                tickerData.setOneMonthPrice(BigDecimal.valueOf(allRanges.get(allRanges.size() - 1).close()));
             }
 
             // Price at approximately 3 months ago (60 trading days)
-            if (allRanges.size() > 60) {
+            if (size > 60) {
                 tickerData.setThreeMonthPrice(BigDecimal.valueOf(allRanges.get(60).close()));
             }
 
             // Price at approximately 6 months ago (120 trading days)
-            if (allRanges.size() > 120) {
+            if (size > 120) {
                 tickerData.setSixMonthPrice(BigDecimal.valueOf(allRanges.get(120).close()));
             }
 
             return tickerData;
 
         } catch (Exception e) {
-            System.err.println("Failed to parse Tiingo response for " + ticker + ": " + e.getMessage());
+            System.err.println("Failed to parse EODHD response for " + ticker + ": " + e.getMessage());
             return null;
         }
     }

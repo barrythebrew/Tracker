@@ -2,8 +2,8 @@ package uk.me.bswales.tracker;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import uk.me.bswales.tracker.source.Eodhd;
 import uk.me.bswales.tracker.source.ISource;
-import uk.me.bswales.tracker.source.Tiingo;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -15,34 +15,32 @@ import java.util.Properties;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration test that fetches real data from Tiingo for a single ticker
+ * Integration test that fetches real data from EODHD for a single ticker
  * and saves the response to a file.
  */
-@Tag( "USA" )
-class TiingoTest {
+@Tag("api-test")
+class EodhdTest {
 
-    private static final String TEST_TICKER = "TSCO_LON";
-    private static final String OUTPUT_FILE = "build/tsco_lon_tiingo_test_output.csv";
+    private static final String TEST_TICKER = "AAPL.US";
+    private static final String OUTPUT_FILE = "build/aapl_us_eodhd_test_output.csv";
 
     @Test
-    void fetchAndSaveTescoData() throws IOException {
+    void fetchAndSaveAppleData() throws IOException {
         // Load the real API key from the project properties
         Properties props = SourceFactory.loadProperties();
-        Properties tiingoProps = SourceFactory.groupBySource(props).get("tiingo");
+        Properties eodhdProps = SourceFactory.groupBySource(props).get("eodhd");
 
-        assertNotNull(tiingoProps, "tiingo properties must be present in source.properties");
-        assertNotNull(tiingoProps.getProperty("apiKey"), "apiKey must be configured");
-        assertFalse(tiingoProps.getProperty("apiKey").equals("YOUR_TIINGO_API_KEY"),
-                "Please configure a real Tiingo API key in source.properties");
+        assertNotNull(eodhdProps, "eodhd properties must be present in source.properties");
+        assertNotNull(eodhdProps.getProperty("apiKey"), "apiKey must be configured");
 
         // Create the source and fetch data
-        ISource source = new Tiingo(tiingoProps);
+        ISource source = new Eodhd(eodhdProps);
         assertTrue(source.isAvailable(), "Source should be available");
 
         TickerData data = source.fetch(TEST_TICKER);
         assertNotNull(data, "Fetched data should not be null for " + TEST_TICKER);
         assertEquals(TEST_TICKER, data.getTicker());
-        assertEquals(Tiingo.class.getName(), data.getSource());
+        assertEquals(Eodhd.class.getName(), data.getSource());
 
         // Verify key fields are populated
         assertNotNull(data.getPriceCurrent(), "priceCurrent should be set");
@@ -66,7 +64,7 @@ class TiingoTest {
         assertTrue(Files.exists(outputPath), "Output file should exist");
         String content = Files.readString(outputPath);
         assertTrue(content.contains(TEST_TICKER), "Output should contain the ticker symbol");
-        assertTrue(content.contains(Tiingo.class.getName()), "Output should contain the source class name");
+        assertTrue(content.contains(Eodhd.class.getName()), "Output should contain the source class name");
 
         System.out.println("Data for " + TEST_TICKER + " saved to: " + outputPath.toAbsolutePath());
         System.out.println("--- CSV Output ---");
